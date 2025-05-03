@@ -117,7 +117,7 @@ const ContentForm: React.FC<ContentFormProps> = ({ jobs, onGenerate = () => {} }
                 <SelectValue placeholder="Select job" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {jobs.map(job => (
                   <SelectItem key={job.id} value={job.id}>
                     {job.company} - {job.role}
