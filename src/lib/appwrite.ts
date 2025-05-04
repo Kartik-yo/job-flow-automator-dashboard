@@ -201,13 +201,16 @@ export const generatedContentApi = {
         })
       );
       
-      if (execution.status === 'completed' && execution.response) {
-        const resultText = execution.response;
+      // In the newer Appwrite SDK versions, we need to check the execution status differently
+      // and access the payload from the execution object
+      if (execution.status === 'completed') {
+        // Parse the execution payload which should be a string containing the result
+        const resultText = execution.responseBody || '';
         
         // Store the generated content
         return await generatedContentApi.create(contentType, inputData, resultText);
       } else {
-        throw new Error(`Function execution failed: ${execution.stderr}`);
+        throw new Error(`Function execution failed with status: ${execution.status}`);
       }
     } catch (error) {
       console.error('Error generating content:', error);
