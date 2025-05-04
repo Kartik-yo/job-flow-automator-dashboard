@@ -22,6 +22,9 @@ import {
 import { Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Job } from '@/lib/data';
+import { ContentType, generatedContentApi } from '@/lib/appwrite';
+import { useAuth } from '@/hooks/use-auth-appwrite';
+import { Navigate } from 'react-router-dom';
 
 interface ContentFormProps {
   jobs: Job[];
@@ -30,12 +33,18 @@ interface ContentFormProps {
 
 const ContentForm: React.FC<ContentFormProps> = ({ jobs, onGenerate = () => {} }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [contentType, setContentType] = useState<string>('resume');
-  const [selectedJob, setSelectedJob] = useState<string>('');
+  const [selectedJob, setSelectedJob] = useState<string>('none');
   const [jobDescription, setJobDescription] = useState<string>('');
 
-  const handleGenerate = (e: React.FormEvent) => {
+  // Redirect to auth page if not logged in
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!contentType) {
@@ -47,27 +56,52 @@ const ContentForm: React.FC<ContentFormProps> = ({ jobs, onGenerate = () => {} }
       return;
     }
 
+    if (!jobDescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a job description",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
       const job = jobs.find(j => j.id === selectedJob);
+      
+      // Map the content type string to our Appwrite enum
+      const contentTypeEnum = contentType as keyof typeof ContentType;
+      
+      // Call the Appwrite function to generate content
+      const result = await generatedContentApi.generate(
+        ContentType[contentTypeEnum],
+        jobDescription
+      );
       
       onGenerate({
         contentType,
         jobId: selectedJob,
         company: job?.company,
         role: job?.role,
-        jobDescription
+        jobDescription,
+        resultText: result.resultText
       });
       
       toast({
         title: "Content generated",
         description: `Your ${contentType} has been created successfully.`
       });
-      
+    } catch (error) {
+      console.error('Error generating content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate content. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const contentTypeOptions = [
